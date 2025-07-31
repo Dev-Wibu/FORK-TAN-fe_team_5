@@ -3,8 +3,12 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { useBookingsByDateRange } from "@/services/bookingService";
 import { queryReceiptTopMovies } from "@/services/receipService";
 import { format, startOfMonth, eachDayOfInterval } from "date-fns";
+import { useMemo } from "react";
 import AdminStatCards from "./components/AdminStatCards";
 import RevenueAreaChart from "./components/RevenueAreaChart";
+import ComboSnackPieChart, { type ComboSnackData } from "./components/ComboSnackPieChart";
+import ComboTable, { type ComboSalesData } from "./components/ComboTable";
+import SnackTable, { type SnackSalesData } from "./components/SnackTable";
 
 export default function AdminDashboard() {
   const today = new Date();
@@ -40,6 +44,53 @@ export default function AdminDashboard() {
   });
   const chartData = Array.from(revenueMap.entries()).map(([date, revenue]) => ({ date, revenue }));
 
+  // Mock combo and snack data for demonstration
+  const { comboData, snackData, pieChartData } = useMemo(() => {
+    // Mock data - in real implementation this would come from receipts
+    const mockComboData: ComboSalesData[] = [
+      { id: 1, name: "Combo Pop & Nachos", quantitySold: 45, revenue: 1350000 },
+      { id: 2, name: "Combo Movie Special", quantitySold: 32, revenue: 960000 },
+      { id: 3, name: "Combo Sweet & Salty", quantitySold: 28, revenue: 840000 },
+      { id: 4, name: "Combo Family Size", quantitySold: 18, revenue: 720000 },
+      { id: 5, name: "Combo Date Night", quantitySold: 15, revenue: 450000 },
+    ];
+
+    const mockSnackData: SnackSalesData[] = [
+      { id: 1, name: "Caramel Popcorn", quantitySold: 67, revenue: 670000 },
+      { id: 2, name: "Classic Nachos", quantitySold: 54, revenue: 540000 },
+      { id: 3, name: "Soft Drinks", quantitySold: 89, revenue: 445000 },
+      { id: 4, name: "Ice Cream", quantitySold: 23, revenue: 345000 },
+      { id: 5, name: "Candy Mix", quantitySold: 34, revenue: 170000 },
+    ];
+
+    const totalComboQuantity = mockComboData.reduce((sum, combo) => sum + combo.quantitySold, 0);
+    const totalSnackQuantity = mockSnackData.reduce((sum, snack) => sum + snack.quantitySold, 0);
+
+    const pieData: ComboSnackData[] = [];
+    if (totalComboQuantity > 0) {
+      pieData.push({
+        name: "Combos",
+        value: totalComboQuantity,
+        type: "COMBO",
+        color: "#0088FE",
+      });
+    }
+    if (totalSnackQuantity > 0) {
+      pieData.push({
+        name: "Snacks",
+        value: totalSnackQuantity,
+        type: "SNACK",
+        color: "#00C49F",
+      });
+    }
+
+    return {
+      comboData: mockComboData,
+      snackData: mockSnackData,
+      pieChartData: pieData,
+    };
+  }, []);
+
   if (trendingQuery.isLoading || bookingsQuery.isLoading) {
     return <LoadingSpinner name="dashboard" />;
   }
@@ -52,28 +103,55 @@ export default function AdminDashboard() {
           <div className="px-4 lg:px-6">
             <RevenueAreaChart data={chartData} />
           </div>
-          <div className="px-4 lg:px-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>Movie</TableHead>
-                  <TableHead className="text-right">Tickets</TableHead>
-                  <TableHead className="text-right">Revenue</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {trendingMovies.map((m, idx) => (
-                  <TableRow key={m.movieId ?? idx}>
-                    <TableCell>{idx + 1}</TableCell>
-                    <TableCell>{m.movieName}</TableCell>
-                    <TableCell className="text-right">{m.ticketCount}</TableCell>
-                    <TableCell className="text-right">{m.totalRevenue?.toLocaleString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableCaption>Top movies this month</TableCaption>
-            </Table>
+          
+          {/* New Layout: Tables on left, Pie chart on right */}
+          <div className="px-4 lg:px-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left side: Tables */}
+            <div className="space-y-6">
+              {/* Top Movies Table */}
+              <div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">#</TableHead>
+                      <TableHead>Movie</TableHead>
+                      <TableHead className="text-right">Tickets</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {trendingMovies.slice(0, 5).map((m, idx) => (
+                      <TableRow key={m.movieId ?? idx}>
+                        <TableCell>{idx + 1}</TableCell>
+                        <TableCell>{m.movieName}</TableCell>
+                        <TableCell className="text-right">{m.ticketCount}</TableCell>
+                        <TableCell className="text-right">{m.totalRevenue?.toLocaleString()} đ</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableCaption>Top movies this month</TableCaption>
+                </Table>
+              </div>
+
+              {/* Combo Table */}
+              <div>
+                <ComboTable data={comboData.slice(0, 5)} />
+              </div>
+
+              {/* Snack Table */}
+              <div>
+                <SnackTable data={snackData.slice(0, 5)} />
+              </div>
+            </div>
+
+            {/* Right side: Pie Chart */}
+            <div className="flex items-center justify-center">
+              <ComboSnackPieChart 
+                data={pieChartData}
+                title="Combo & Snack Sales"
+                description="Quantity sold by category"
+              />
+            </div>
           </div>
         </div>
       </div>

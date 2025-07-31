@@ -16,3 +16,13 @@ export const queryReceiptTopMovies = (fromDate: string, toDate: string) => {
 export const queryReceipts = () => {
   return $api.useMutation("post", "/receipt");
 };
+
+// POST /receipt - Get receipts with filter for date range to analyze combo/snack data
+export const useReceiptsByDateRange = (fromDate: string, toDate: string) => {
+  return $api.useMutation("post", "/receipt", {
+    body: {
+      fromDate,
+      toDate,
+    },
+  });
+};
